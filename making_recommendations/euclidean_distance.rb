@@ -1,5 +1,3 @@
-require File.dirname(__FILE__) + '/recommendations'
-
 class EuclideanDistance
   def self.similarity_score(first_ratings, second_ratings)
     return 0 if first_ratings.empty? or second_ratings.empty?
@@ -9,5 +7,6 @@ class EuclideanDistance
 end
 
 if __FILE__ == $0
-  puts EuclideanDistance.similarity_score(*movie_ratings_from('Lisa Rose', 'Gene Seymour'))
+  require File.dirname(__FILE__) + '/recommendations'
+  puts EuclideanDistance.similarity_score(*Recommendations.movie_ratings_from('Lisa Rose', 'Gene Seymour'))
 end
