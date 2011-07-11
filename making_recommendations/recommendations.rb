@@ -51,7 +51,39 @@ class Recommendations
     }
   }.freeze
   
-  def self.topMatches(person, limit = 5, &similarity_score)
+  def self.get_recommendations(person, &similarity_score)
+    return [] unless CRITICS.has_key? person
+    
+    similarity_scores = Hash[CRITICS.keys.select {|e| e != person}.map do |another_person|
+      [another_person, similarity_score.call(movie_ratings_from(person, another_person))]
+    end]
+    
+    movies = Hash[CRITICS.keys.select {|e| e != person}.map do |another_person|
+      new_movies = CRITICS[another_person].keys.reject {|movie| CRITICS[person].keys.include? movie}
+      [another_person, new_movies] unless new_movies.empty?
+    end]
+    
+    weighted_ratings = Hash[movies.map do |person, movies|
+      [person, Hash[movies.map {|movie| [movie, CRITICS[person][movie] * similarity_scores[person]]}]] if similarity_scores[person] > 0
+    end]
+    
+    total_weighted_ratings = weighted_ratings.reduce({}) do |total, weighted_rating|
+      weighted_rating[1].each {|movie, rating| total[movie] = (total[movie]||0) + rating}
+      total
+    end
+    
+    total_similarity_scores = weighted_ratings.reduce({}) do |total, weighted_rating|
+      weighted_rating[1].each {|movie, rating| total[movie] = (total[movie]||0) + similarity_scores[weighted_rating[0]]}
+      total
+    end
+    
+    total_weighted_ratings.keys.reduce({}) do |normalised, movie|
+      normalised[movie] = total_weighted_ratings[movie] / total_similarity_scores[movie]
+      normalised
+    end
+  end
+  
+  def self.top_matches(person, limit = 5, &similarity_score)
     return [] unless CRITICS.has_key? person
     CRITICS.keys.select {|e| e != person}.map do |another_person|
       [another_person, similarity_score.call(movie_ratings_from(person, another_person))]
@@ -67,5 +99,5 @@ end
 
 if __FILE__ == $0
   require File.dirname(__FILE__) + '/pearson_correlation'
-  puts Recommendations.topMatches('Toby', 3) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}
+  puts Recommendations.get_recommendations('Toby') {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}
 end

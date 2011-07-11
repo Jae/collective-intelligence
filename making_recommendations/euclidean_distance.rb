@@ -1,8 +1,8 @@
 class EuclideanDistance
   def self.similarity_score(first_ratings, second_ratings)
     return 0 if first_ratings.empty? or second_ratings.empty?
-    
-    return 1/ (1 + [first_ratings, second_ratings].transpose.map {|x,y| (x-y) ** 2}.inject(0) {|sum, value| sum + value})
+    euclidean_distance = [first_ratings, second_ratings].transpose.map {|x,y| (x-y) ** 2}.inject(0) {|sum, value| sum + value}
+    return 1/ (1 + euclidean_distance)
   end
 end
 
