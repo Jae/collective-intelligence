@@ -76,8 +76,8 @@ class Recommendations
       weighted_rating[1].each {|movie, rating| total[movie] = (total[movie]||0) + similarity_scores[weighted_rating[0]]}
       total
     end
-    
-    total_weighted_ratings.keys.reduce({}) do |normalised, movie|
+
+    movies.values.flatten.uniq.reduce({}) do |normalised, movie|
       normalised[movie] = total_weighted_ratings[movie] / total_similarity_scores[movie]
       normalised
     end
