@@ -86,7 +86,7 @@ class Recommendations
   def self.top_matches(recommendee, ratings, limit = 5, &similarity_score)
     return [] unless ratings.has_key? recommendee
     ratings.keys.select {|e| e != recommendee}.map do |another_recommendee|
-      [another_recommendee, similarity_score.call(common_ratings_from(recommendee, another_recommendee))]
+      [another_recommendee, similarity_score.call(common_ratings_from(recommendee, another_recommendee, ratings))]
     end.sort_by {|name, score| score}.reverse[0...limit]
   end
   
@@ -95,9 +95,19 @@ class Recommendations
     from_second_recommendee = ratings[second_recommendee].find_all {|rating| ratings[first_recommendee].has_key? rating[0]}.sort.map {|rating| rating[1]}
     [from_first_recommendee, from_second_recommendee]
   end
+  
+  def self.transpose(ratings)
+    ratings.reduce({}) do |transposed, rating|
+      rating[1].each do |subject, score|
+        (transposed[subject]||={})[rating[0]] = score
+      end
+      transposed
+    end
+  end
 end
 
 if __FILE__ == $0
   require File.dirname(__FILE__) + '/pearson_correlation'
   puts Recommendations.get_recommendations('Toby', Recommendations::CRITICS) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
+  puts Recommendations.top_matches('Superman Returns', Recommendations.transpose(Recommendations::CRITICS)) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
 end
