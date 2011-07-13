@@ -51,53 +51,53 @@ class Recommendations
     }
   }.freeze
   
-  def self.get_recommendations(person, &similarity_score)
-    return [] unless CRITICS.has_key? person
+  def self.get_recommendations(recommendee, ratings, &similarity_score)
+    return [] unless ratings.has_key? recommendee
     
-    similarity_scores = Hash[CRITICS.keys.select {|e| e != person}.map do |another_person|
-      [another_person, similarity_score.call(movie_ratings_from(person, another_person))]
+    similarity_scores = Hash[ratings.keys.reject {|e| e == recommendee}.map do |another_recommendee|
+      [another_recommendee, similarity_score.call(common_ratings_from(recommendee, another_recommendee, ratings))]
     end]
     
-    movies = Hash[CRITICS.keys.select {|e| e != person}.map do |another_person|
-      new_movies = CRITICS[another_person].keys.reject {|movie| CRITICS[person].keys.include? movie}
-      [another_person, new_movies] unless new_movies.empty?
+    subjects_by_recommendee = Hash[ratings.keys.reject {|e| e == recommendee}.map do |another_recommendee|
+      new_subjects = ratings[another_recommendee].keys.reject {|subject| ratings[recommendee].keys.include? subject}
+      [another_recommendee, new_subjects] unless new_subjects.empty?
     end]
     
-    weighted_ratings = Hash[movies.map do |person, movies|
-      [person, Hash[movies.map {|movie| [movie, CRITICS[person][movie] * similarity_scores[person]]}]] if similarity_scores[person] > 0
+    weighted_ratings = Hash[subjects_by_recommendee.map do |recommendee, subjects|
+      [recommendee, Hash[subjects.map {|subject| [subject, ratings[recommendee][subject] * similarity_scores[recommendee]]}]] if similarity_scores[recommendee] > 0
     end]
     
     total_weighted_ratings = weighted_ratings.reduce({}) do |total, weighted_rating|
-      weighted_rating[1].each {|movie, rating| total[movie] = (total[movie]||0) + rating}
+      weighted_rating[1].each {|subject, rating| total[subject] = (total[subject]||0) + rating}
       total
     end
     
     total_similarity_scores = weighted_ratings.reduce({}) do |total, weighted_rating|
-      weighted_rating[1].each {|movie, rating| total[movie] = (total[movie]||0) + similarity_scores[weighted_rating[0]]}
+      weighted_rating[1].each {|subject, rating| total[subject] = (total[subject]||0) + similarity_scores[weighted_rating[0]]}
       total
     end
 
-    movies.values.flatten.uniq.reduce({}) do |normalised, movie|
-      normalised[movie] = total_weighted_ratings[movie] / total_similarity_scores[movie]
+    subjects_by_recommendee.values.flatten.uniq.reduce({}) do |normalised, subject|
+      normalised[subject] = total_weighted_ratings[subject] / total_similarity_scores[subject]
       normalised
-    end
+    end.to_a.sort_by {|e| e[1]}.reverse
   end
   
-  def self.top_matches(person, limit = 5, &similarity_score)
-    return [] unless CRITICS.has_key? person
-    CRITICS.keys.select {|e| e != person}.map do |another_person|
-      [another_person, similarity_score.call(movie_ratings_from(person, another_person))]
+  def self.top_matches(recommendee, ratings, limit = 5, &similarity_score)
+    return [] unless ratings.has_key? recommendee
+    ratings.keys.select {|e| e != recommendee}.map do |another_recommendee|
+      [another_recommendee, similarity_score.call(common_ratings_from(recommendee, another_recommendee))]
     end.sort_by {|name, score| score}.reverse[0...limit]
   end
   
-  def self.movie_ratings_from(first_person, second_person)
-    from_first_person = CRITICS[first_person].find_all {|rating| CRITICS[second_person].has_key? rating[0]}.sort.map {|rating| rating[1]}
-    from_second_person = CRITICS[second_person].find_all {|rating| CRITICS[first_person].has_key? rating[0]}.sort.map {|rating| rating[1]}
-    [from_first_person, from_second_person]
+  def self.common_ratings_from(first_recommendee, second_recommendee, ratings)
+    from_first_recommendee = ratings[first_recommendee].find_all {|rating| ratings[second_recommendee].has_key? rating[0]}.sort.map {|rating| rating[1]}
+    from_second_recommendee = ratings[second_recommendee].find_all {|rating| ratings[first_recommendee].has_key? rating[0]}.sort.map {|rating| rating[1]}
+    [from_first_recommendee, from_second_recommendee]
   end
 end
 
 if __FILE__ == $0
   require File.dirname(__FILE__) + '/pearson_correlation'
-  puts Recommendations.get_recommendations('Toby') {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}
+  puts Recommendations.get_recommendations('Toby', Recommendations::CRITICS) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
 end
