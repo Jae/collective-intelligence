@@ -77,7 +77,7 @@ class Recommendations
       total
     end
 
-    subjects_by_recommendee.values.flatten.uniq.reduce({}) do |normalised, subject|
+    total_weighted_ratings.keys.reduce({}) do |normalised, subject|
       normalised[subject] = total_weighted_ratings[subject] / total_similarity_scores[subject]
       normalised
     end.to_a.sort_by {|e| e[1]}.reverse
@@ -110,4 +110,5 @@ if __FILE__ == $0
   require File.dirname(__FILE__) + '/pearson_correlation'
   puts Recommendations.get_recommendations('Toby', Recommendations::CRITICS) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
   puts Recommendations.top_matches('Superman Returns', Recommendations.transpose(Recommendations::CRITICS)) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
+  puts Recommendations.get_recommendations('Just My Luck', Recommendations.transpose(Recommendations::CRITICS)) {|ratings1, ratings2| PearsonCorrelation.similarity_score(ratings1, ratings2)}.inspect
 end
