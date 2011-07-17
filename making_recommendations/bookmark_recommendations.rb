@@ -7,8 +7,9 @@ popular_bookmark = Deliruby::Bookmarks.popular[0]
 users = Deliruby::Bookmarks.for_url(popular_bookmark.url).map {|bookmark| bookmark.creator}
 
 bookmarks = users.reduce({}) do |bookmarks, user|
+  # filter the data set to the tags of popular_bookmark to increase relevancy
   bookmarks_with_common_tags = popular_bookmark.tags.map do |tag|
-    Deliruby::Bookmarks.for_user(user, [tag]).map {|bookmark| bookmark.url}
+    Deliruby::Bookmarks.for_user(user, [tag]).map {|bookmark| bookmark.url} rescue nil
   end.flatten.uniq
   
   bookmarks[user] = bookmarks_with_common_tags unless bookmarks_with_common_tags.empty?
@@ -16,9 +17,8 @@ bookmarks = users.reduce({}) do |bookmarks, user|
 end
 all_bookmarks = bookmarks.values.flatten.uniq
 ratings = bookmarks.keys.reduce({}) do |ratings, user|
-  ratings[user] = {}
-  bookmarks[user].each {|bookmark| ratings[user][bookmark] = 1.0}
-  (all_bookmarks - bookmarks[user]).each {|bookmark| ratings[user][bookmark] = 0.0}
+  bookmarks[user].each {|bookmark| (ratings[user]||={})[bookmark] = 1.0}
+  (all_bookmarks - bookmarks[user]).each {|bookmark| (ratings[user]||={})[bookmark] = 0.0}
   ratings
 end
 
