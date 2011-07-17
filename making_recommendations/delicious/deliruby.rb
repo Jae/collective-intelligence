@@ -51,9 +51,9 @@ module Deliruby
             raise "Communication error with delicious server: #{res.response['status']}" if res.response['status'] =~ /^[45]/
             bookmarks = []
             return [] unless res['rss']['channel'].has_key?('item')
-            res['rss']['channel']['item'].each do |item|
-                bookmarks.push DeliciousBookmark.new(item['link'], item['title'], item['pubDate'], item['dc:creator'],
-                                                     item['category']) rescue next
+            items = res['rss']['channel']['item'].is_a?(Hash) ? [res['rss']['channel']['item']] : res['rss']['channel']['item']
+            items.each do |item|
+              bookmarks.push DeliciousBookmark.new(item['link'], item['title'], item['pubDate'], item['dc:creator'], item['category'])
             end
             return bookmarks
         end

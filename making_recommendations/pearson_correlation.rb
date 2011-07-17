@@ -1,6 +1,7 @@
 class PearsonCorrelation
   def self.similarity_score(first_ratings, second_ratings)
     return 0 if first_ratings.empty? or second_ratings.empty?
+    return 0 if sd(first_ratings) * sd(second_ratings) == 0
     return covariance(first_ratings, second_ratings) / sd(first_ratings) / sd(second_ratings)
   end
     

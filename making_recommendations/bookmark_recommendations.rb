@@ -5,6 +5,7 @@ require File.dirname(__FILE__) + '/pearson_correlation'
 
 popular_bookmark = Deliruby::Bookmarks.popular[0]
 users = Deliruby::Bookmarks.for_url(popular_bookmark.url).map {|bookmark| bookmark.creator}
+users << popular_bookmark.creator unless users.include? popular_bookmark.creator
 
 bookmarks = users.reduce({}) do |bookmarks, user|
   # filter the data set to the tags of popular_bookmark to increase relevancy
@@ -15,6 +16,7 @@ bookmarks = users.reduce({}) do |bookmarks, user|
   bookmarks[user] = bookmarks_with_common_tags unless bookmarks_with_common_tags.empty?
   bookmarks
 end
+
 all_bookmarks = bookmarks.values.flatten.uniq
 ratings = bookmarks.keys.reduce({}) do |ratings, user|
   bookmarks[user].each {|bookmark| (ratings[user]||={})[bookmark] = 1.0}
