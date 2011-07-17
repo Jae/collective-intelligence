@@ -3,7 +3,7 @@ require File.dirname(__FILE__) + '/delicious/deliruby'
 require File.dirname(__FILE__) + '/recommendations'
 require File.dirname(__FILE__) + '/pearson_correlation'
 
-popular_bookmark = Deliruby::Bookmarks.popular[0]
+popular_bookmark = Deliruby::Bookmarks.recent[0]
 users = Deliruby::Bookmarks.for_url(popular_bookmark.url).map {|bookmark| bookmark.creator}
 users << popular_bookmark.creator unless users.include? popular_bookmark.creator
 
