@@ -1,6 +1,7 @@
-require './delicious/deliruby'
-require './recommendations'
-require './pearson_correlation'
+require 'bundler/setup'
+require File.dirname(__FILE__) + '/delicious/deliruby'
+require File.dirname(__FILE__) + '/recommendations'
+require File.dirname(__FILE__) + '/pearson_correlation'
 
 popular_bookmark = Deliruby::Bookmarks.popular[0]
 users = Deliruby::Bookmarks.for_url(popular_bookmark.url).map {|bookmark| bookmark.creator}

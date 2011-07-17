@@ -1,7 +1,8 @@
 require 'httparty'
-require 'httparty_icebox'
 require 'date'
 require 'digest/md5'
+require File.dirname(__FILE__) + '/httparty_icebox'
+
 module Deliruby
     #Abstract representation of a delicious bookmark item
     class DeliciousBookmark
