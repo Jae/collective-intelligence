@@ -19,7 +19,7 @@ module Deliruby
 
         def initialize(url, title="", published_on=nil, creator="", tags=[])
             @url = url 
-            @tags = tags || []
+            @tags = (tags||[]).is_a?(Enumerable) ? (tags||[]) : [tags]
             @title = title || ""
             @published_on = published_on ? DateTime.strptime(published_on, "%a, %d %b %Y %H:%M:%S %Z") : nil
             @creator = creator || ""
