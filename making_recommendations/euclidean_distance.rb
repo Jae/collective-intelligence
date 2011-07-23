@@ -8,5 +8,6 @@ end
 
 if __FILE__ == $0
   require File.dirname(__FILE__) + '/recommendations'
-  puts EuclideanDistance.similarity_score(*Recommendations.movie_ratings_from('Lisa Rose', 'Gene Seymour'))
+  require File.dirname(__FILE__) + '/movie_ratings'
+  puts EuclideanDistance.similarity_score(*Recommendations.common_ratings_from('Lisa Rose', 'Gene Seymour', Movie::RATINGS))
 end
