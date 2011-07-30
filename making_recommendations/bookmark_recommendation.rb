@@ -1,7 +1,7 @@
 require 'bundler/setup'
-require File.dirname(__FILE__) + '/delicious/deliruby'
-require File.dirname(__FILE__) + '/recommendations'
-require File.dirname(__FILE__) + '/pearson_correlation'
+require File.join(File.dirname(__FILE__), %w[delicious deliruby])
+require File.join(File.dirname(__FILE__), %w[recommendations])
+require File.join(File.dirname(__FILE__), %w[pearson_correlation])
 
 recent_bookmark = Deliruby::Bookmarks.recent[0]
 users = Deliruby::Bookmarks.for_url(recent_bookmark.url).map {|bookmark| bookmark.creator}
@@ -28,4 +28,4 @@ recommended = Recommendations.top_matches(recent_bookmark.url, Recommendations.t
   PearsonCorrelation.similarity_score(ratings1, ratings2)
 end
 
-puts "if you enjoyed #{recent_bookmark.url} tagged with #{recent_bookmark.tags}, then check out the following #{recommended.map {|r| r[0]}}"
+puts "if you enjoyed #{recent_bookmark.url} tagged with #{recent_bookmark.tags}, then check out the following #{recommended.keys}"

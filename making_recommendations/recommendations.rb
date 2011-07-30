@@ -1,4 +1,29 @@
 class Recommendations
+  def self.get_itembased_recommendations(receiver, ratings, item_similarity_scores)
+    return [] unless ratings.has_key? receiver
+    
+    weighted_ratings = Hash[ratings[receiver].map do |item, rating|
+      [item, Hash[item_similarity_scores[item].map do |alternative, similarity_score| 
+        [alternative, rating * similarity_score] unless ratings[receiver][alternative] or similarity_score < 0
+      end]]
+    end]
+    
+    total_weighted_ratings = weighted_ratings.values.reduce({}) do |total, alternative_weighted_ratings|
+      alternative_weighted_ratings.each {|alternative, weighted_rating| total[alternative] = (total[alternative]||0) + weighted_rating}
+      total
+    end
+    
+    total_similarity_scores = weighted_ratings.reduce({}) do |total, weighted_rating|
+      item, alternative_weighted_ratings = *weighted_rating
+      alternative_weighted_ratings.each {|alternative, weighted_rating| total[alternative] = (total[alternative]||0) + item_similarity_scores[item][alternative]}
+      total
+    end
+    
+    Hash[total_weighted_ratings.keys.map do |alternative|
+      [alternative, total_weighted_ratings[alternative] / total_similarity_scores[alternative]] unless total_similarity_scores[alternative] == 0
+    end].sort_by {|alternative, normalised_similarity_score| normalised_similarity_score}.reverse
+  end
+  
   def self.get_recommendations(receiver, ratings, &similarity_score)
     return [] unless ratings.has_key? receiver
     
@@ -6,41 +31,44 @@ class Recommendations
       [critic, similarity_score.call(common_ratings_from(receiver, critic, ratings))]
     end]
     
-    recommended_by_critics = Hash[ratings.keys.reject {|e| e == receiver}.map do |critic|
-      recommendations = ratings[critic].keys.reject {|rated| ratings[receiver].keys.include? rated}
-      [critic, recommendations] unless recommendations.empty?
+    weighted_ratings = Hash[ratings.map do |critic, alternatives_by_critic|
+      [critic, Hash[alternatives_by_critic.map do |alternative, rating| 
+        [alternative, rating * similarity_scores[critic]] unless ratings[receiver][alternative] or similarity_scores[critic] < 0
+      end]] unless critic == receiver
     end]
     
-    weighted_ratings = Hash[recommended_by_critics.map do |critic, recommendations|
-      [critic, Hash[recommendations.map {|recommended| [recommended, ratings[critic][recommended] * similarity_scores[critic]]}]] if similarity_scores[critic] > 0
-    end]
-    
-    total_weighted_ratings = weighted_ratings.reduce({}) do |total, weighted_rating|
-      weighted_rating[1].each {|recommended, rating| total[recommended] = (total[recommended]||0) + rating}
+    total_weighted_ratings = weighted_ratings.values.reduce({}) do |total, alternative_weighted_ratings|
+      alternative_weighted_ratings.each {|alternative, weighted_rating| total[alternative] = (total[alternative]||0) + weighted_rating}
       total
     end
     
-    total_similarity_scores = weighted_ratings.reduce({}) do |total, weighted_rating|
-      weighted_rating[1].each {|recommended, rating| total[recommended] = (total[recommended]||0) + similarity_scores[weighted_rating[0]]}
+    total_similarity_scores = weighted_ratings.reduce({}) do |total, weighted_ratings|
+      critic, alternative_weighted_ratings = *weighted_ratings
+      alternative_weighted_ratings.each {|alternative, weighted_rating| total[alternative] = (total[alternative]||0) + similarity_scores[critic]}
       total
     end
 
-    total_weighted_ratings.keys.reduce({}) do |normalised, recommended|
-      normalised[recommended] = total_weighted_ratings[recommended] / total_similarity_scores[recommended]
-      normalised
-    end.to_a.sort_by {|e| e[1]}.reverse
+    Hash[total_weighted_ratings.keys.map do |alternative|
+      [alternative, total_weighted_ratings[alternative] / total_similarity_scores[alternative]] unless total_similarity_scores[alternative] == 0
+    end].sort_by {|alternative, normalised_similarity_score| normalised_similarity_score}.reverse
   end
   
-  def self.top_matches(receiver, ratings, limit = 5, &similarity_score)
-    return [] unless ratings.has_key? receiver
-    ratings.keys.select {|e| e != receiver}.map do |critic|
-      [critic, similarity_score.call(common_ratings_from(receiver, critic, ratings))]
-    end.sort_by {|name, score| score}.reverse[0...limit]
+  def self.similarity_scores(ratings, limit = 5, &similarity_score)
+    Hash[ratings.keys.map do |critic|
+      [critic, Recommendations.top_matches(critic, ratings, limit, &similarity_score)]
+    end]
+  end
+  
+  def self.top_matches(critic, ratings, limit = 5, &similarity_score)
+    return [] unless ratings.has_key? critic
+    Hash[ratings.keys.select {|e| e != critic}.map do |other_critic|
+      [other_critic, similarity_score.call(common_ratings_from(critic, other_critic, ratings))]
+    end.sort_by {|critic, score| score}.reverse[0...limit]]
   end
   
   def self.common_ratings_from(critic1, critic2, ratings)
-    from_critic1 = ratings[critic1].find_all {|rating| ratings[critic2].has_key? rating[0]}.sort.map {|rating| rating[1]}
-    from_critic2 = ratings[critic2].find_all {|rating| ratings[critic1].has_key? rating[0]}.sort.map {|rating| rating[1]}
+    from_critic1 = ratings[critic1].find_all {|recommended, score| ratings[critic2].has_key? recommended}.sort_by {|recommended, score| recommended}.map {|recommended, score| score}
+    from_critic2 = ratings[critic2].find_all {|recommended, score| ratings[critic1].has_key? recommended}.sort_by {|recommended, score| recommended}.map {|recommended, score| score}
     [from_critic1, from_critic2]
   end
   
